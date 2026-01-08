@@ -1,0 +1,38 @@
+{% extends 'chat/base.html' %}
+
+{% block content %}
+<div style="display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; flex-direction: column;">
+    <h1 style="margin-bottom: 2rem;">Choose Your Plan</h1>
+    <div style="display: flex; gap: 2rem;">
+        
+        <!-- Free Plan -->
+        <div style="background-color: var(--sidebar-bg); padding: 2rem; border-radius: 8px; border: 1px solid var(--border-color); width: 300px; display: flex; flex-direction: column;">
+            <h2 style="margin-bottom: 1rem;">Free</h2>
+            <div style="font-size: 2.5rem; font-weight: bold; margin-bottom: 1.5rem;">$0<span style="font-size: 1rem; font-weight: normal; color: var(--text-secondary);">/mo</span></div>
+            <ul style="flex: 1; list-style: none; display: flex; flex-direction: column; gap: 0.75rem; color: var(--text-secondary);">
+                <li>✓ Access to Llama 3.2 (1B/3B)</li>
+                <li>✓ Basic chat history</li>
+                <li>✓ Community support</li>
+            </ul>
+            <button style="margin-top: 2rem; width: 100%; background-color: transparent; border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.75rem; border-radius: 6px; cursor: default;">Current Plan</button>
+        </div>
+
+        <!-- Pro Plan -->
+        <div style="background-color: var(--sidebar-bg); padding: 2rem; border-radius: 8px; border: 1px solid var(--accent-color); width: 300px; display: flex; flex-direction: column; position: relative;">
+            <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background-color: var(--accent-color); color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem; font-weight: bold;">POPULAR</div>
+            <h2 style="margin-bottom: 1rem;">Pro</h2>
+            <div style="font-size: 2.5rem; font-weight: bold; margin-bottom: 1.5rem;">$19<span style="font-size: 1rem; font-weight: normal; color: var(--text-secondary);">/mo</span></div>
+            <ul style="flex: 1; list-style: none; display: flex; flex-direction: column; gap: 0.75rem; color: var(--text-secondary);">
+                <li>✓ Access to Mistral 7B & Llama 3 70B</li>
+                <li>✓ Unlimited context window</li>
+                <li>✓ Priority processing</li>
+            </ul>
+            <button onclick="alert('Payment integration coming soon!')" style="margin-top: 2rem; width: 100%; background-color: var(--accent-color); color: white; border: none; padding: 0.75rem; border-radius: 6px; cursor: pointer;">Upgrade to Pro</button>
+        </div>
+
+    </div>
+    <div style="margin-top: 2rem;">
+        <a href="{% url 'chat' %}" style="color: var(--text-secondary); text-decoration: none;">&larr; Back to Chat</a>
+    </div>
+</div>
+{% endblock %}

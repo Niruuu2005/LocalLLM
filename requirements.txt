@@ -1,0 +1,5 @@
+django
+ollama
+requests
+python-decouple
+gunicorn

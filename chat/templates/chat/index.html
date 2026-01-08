@@ -1,0 +1,187 @@
+{% extends 'chat/base.html' %}
+
+{% block content %}
+<aside class="sidebar">
+    <button class="new-chat-btn" onclick="window.location.reload()">
+        <span>+</span> New Chat
+    </button>
+    <div class="history-list">
+        {% for conv in conversations %}
+        <a href="?conversation_id={{ conv.id }}" class="history-item">
+            {{ conv.title }}
+        </a>
+        {% endfor %}
+
+    </div>
+    <div style="margin-top: auto; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+        <a href="{% url 'pricing' %}" class="history-item" style="color: var(--accent-color); font-weight: bold; margin-bottom: 0.5rem; display: block;">💎 Upgrade Plan</a>
+        <a href="{% url 'logout' %}" class="history-item" style="color: #ff7b72; display: block;">Logout</a>
+    </div>
+</aside>
+
+<main class="chat-area">
+    <div class="top-bar">
+        <h3>{{ active_conversation.title|default:"New Chat" }}</h3>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <div>
+                <label style="font-size: 0.8rem; color: var(--text-secondary);">Mode:</label>
+                <select id="mode-select" class="model-select" style="min-width: 120px;">
+                    <option value="normal">💬 Normal</option>
+                    <option value="teacher">🎓 Teacher</option>
+                    <option value="researcher">🔬 Researcher</option>
+                    <option value="council">🏛️ Council</option>
+                </select>
+            </div>
+            <div>
+                <label style="font-size: 0.8rem; color: var(--text-secondary);">Model:</label>
+                <select id="model-select" class="model-select">
+                    {% if available_models %}
+                        {% for model in available_models %}
+                            <option value="{{ model }}">{{ model }}</option>
+                        {% endfor %}
+                    {% else %}
+                        <option value="llama3.2:3b">Llama 3.2 (3B)</option>
+                        <option value="mistral:7b">Mistral 7B</option>
+                    {% endif %}
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div id="messages" class="messages-container">
+        <!-- Messages will appear here -->
+        {% if active_conversation %}
+            {% for msg in active_conversation.message_set.all %}
+                <div class="message {% if msg.is_user %}user{% else %}ai{% endif %}">
+                    <div class="avatar {% if msg.is_user %}user{% else %}ai{% endif %}">
+                        {% if msg.is_user %}U{% else %}AI{% endif %}
+                    </div>
+                    <div class="message-content" style="position: relative;">
+                        <div style="white-space: pre-wrap;">{{ msg.content }}</div>
+                        <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.5rem; opacity: 0.7;">
+                            {{ msg.timestamp|date:"H:i" }}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <div class="input-area">
+        <form id="chat-form" class="input-container">
+            {% csrf_token %}
+            <textarea id="prompt" placeholder="Message Local LLM..." rows="1" required></textarea>
+            <button type="submit" class="send-btn">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M1.59 15.15L2.4 8.7L9 8.2L2.4 7.7L1.6 1.3L15 8.2L1.59 15.15Z"/>
+                </svg>
+            </button>
+        </form>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const messagesContainer = document.getElementById('messages');
+    const chatForm = document.getElementById('chat-form');
+    const promptInput = document.getElementById('prompt');
+    const modelSelect = document.getElementById('model-select');
+    const modeSelect = document.getElementById('mode-select');
+
+    // Auto-resize textarea
+    promptInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+        if(this.value === '') this.style.height = '50px';
+    });
+
+    chatForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const prompt = promptInput.value.trim();
+        if (!prompt) return;
+
+        // Add user message to UI
+        appendMessage('user', prompt);
+        promptInput.value = '';
+        promptInput.style.height = '50px';
+
+        // Prepare placeholder for AI response
+        const aiMessageDiv = appendMessage('ai', '');
+        const aiContentDiv = aiMessageDiv.querySelector('.message-content');
+
+        const formData = new FormData();
+        formData.append('prompt', prompt);
+        formData.append('model', modelSelect.value);
+        formData.append('mode', modeSelect.value);
+        // Optionally pass conversation_id if preserving context in same session
+        // For now, the view creates a new one or uses logic we need to clarify.
+        // If we want to continue the SAME conversation shown, we need the ID.
+        // But the current view logic creates a NEW conversation if ID is not passed? 
+        // Or we pass the current ID.
+        // Let's grab it from URL or a hidden input.
+        const urlParams = new URLSearchParams(window.location.search);
+        let conversationId = urlParams.get('conversation_id'); // Changed to let
+        if (conversationId) {
+            formData.append('conversation_id', conversationId);
+        }
+
+        try {
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            const response = await fetch('', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                },
+                body: formData,
+            });
+
+            // Update Conversation ID if new
+            const newConvId = response.headers.get('X-Conversation-ID');
+            if (newConvId) {
+                const url = new URL(window.location);
+                url.searchParams.set('conversation_id', newConvId);
+                window.history.pushState({}, '', url);
+                // Also update the hidden form data logic for next send
+            }
+
+            const reader = response.body.getReader();
+
+            const decoder = new TextDecoder();
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                const text = decoder.decode(value);
+                aiContentDiv.textContent += text;
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+        } catch (err) {
+            aiContentDiv.textContent += "\n[Error: " + err.message + "]";
+        }
+    };
+
+    function appendMessage(role, text) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `message ${role}`; // 'user' or 'ai'
+        
+        const avatar = role === 'user' ? 'U' : 'AI';
+        const now = new Date();
+        const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+        
+        msgDiv.innerHTML = `
+            <div class="avatar ${role}">${avatar}</div>
+            <div class="message-content" style="position: relative;">
+                <div style="white-space: pre-wrap;">${text}</div>
+                <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.5rem; opacity: 0.7;">
+                    ${timeStr}
+                </div>
+            </div>
+        `;
+        
+        messagesContainer.appendChild(msgDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        return msgDiv;
+    }
+</script>
+{% endblock %}

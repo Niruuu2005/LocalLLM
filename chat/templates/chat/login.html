@@ -1,0 +1,42 @@
+{% extends 'chat/base.html' %}
+
+{% block content %}
+<div style="display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;">
+    <div style="background-color: var(--sidebar-bg); padding: 2rem; border-radius: 8px; border: 1px solid var(--border-color); width: 350px;">
+        <h2 style="margin-bottom: 1.5rem; text-align: center;">Login</h2>
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem;">{{ field.label }}</label>
+                    <div class="input-group">
+                        {{ field }}
+                    </div>
+                    {% if field.errors %}
+                        <div style="color: #ff7b72; font-size: 0.85rem; margin-top: 0.25rem;">{{ field.errors }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            <button type="submit" style="width: 100%; background-color: var(--accent-color); color: white; border: none; padding: 0.75rem; border-radius: 6px; cursor: pointer; margin-top: 1rem;">Login</button>
+        </form>
+        <div style="margin-top: 1rem; text-align: center; font-size: 0.9rem;">
+            Don't have an account? <a href="{% url 'register' %}" style="color: var(--accent-color);">Register</a>
+        </div>
+    </div>
+</div>
+
+<style>
+    input {
+        width: 100%;
+        padding: 0.5rem;
+        background-color: var(--input-bg);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        border-radius: 4px;
+    }
+    input:focus {
+        border-color: var(--accent-color);
+        outline: none;
+    }
+</style>
+{% endblock %}
